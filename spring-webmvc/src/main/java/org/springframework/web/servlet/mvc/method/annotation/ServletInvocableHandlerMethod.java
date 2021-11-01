@@ -22,8 +22,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.concurrent.Callable;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.context.MessageSource;
 import org.springframework.core.KotlinDetector;
@@ -195,7 +195,7 @@ public class ServletInvocableHandlerMethod extends InvocableHandlerMethod {
 
 	/**
 	 * Create a nested ServletInvocableHandlerMethod subclass that returns the
-	 * the given value (or raises an Exception if the value is one) rather than
+	 * given value (or raises an Exception if the value is one) rather than
 	 * actually invoking the controller method. This is useful when processing
 	 * async return values (e.g. Callable, DeferredResult, ListenableFuture).
 	 */

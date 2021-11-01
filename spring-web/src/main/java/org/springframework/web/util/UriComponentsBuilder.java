@@ -85,7 +85,7 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 
 	private static final String HOST_PATTERN = "(" + HOST_IPV6_PATTERN + "|" + HOST_IPV4_PATTERN + ")";
 
-	private static final String PORT_PATTERN = "(\\{[^}]+}?|[^/?#]*)";
+	private static final String PORT_PATTERN = "(\\{[^}]+\\}?|[^/?#]*)";
 
 	private static final String PATH_PATTERN = "([^?#]*)";
 
@@ -479,8 +479,9 @@ public class UriComponentsBuilder implements UriBuilder, Cloneable {
 			result = new OpaqueUriComponents(this.scheme, this.ssp, this.fragment);
 		}
 		else {
+			MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>(this.queryParams);
 			HierarchicalUriComponents uric = new HierarchicalUriComponents(this.scheme, this.fragment,
-					this.userInfo, this.host, this.port, this.pathBuilder.build(), this.queryParams,
+					this.userInfo, this.host, this.port, this.pathBuilder.build(), queryParams,
 					hint == EncodingHint.FULLY_ENCODED);
 			result = (hint == EncodingHint.ENCODE_TEMPLATE ? uric.encodeTemplate(this.charset) : uric);
 		}
