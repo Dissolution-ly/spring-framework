@@ -170,6 +170,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	static {
 		// Eagerly load the ContextClosedEvent class to avoid weird classloader issues
 		// on application shutdown in WebLogic 8.1. (Reported by Dustin Woods.)
+		// 为了避免应用程序在 WebLogic 8.1 关闭时出现类加载器异常加载,加载IOC容器关闭事件类(ContextClosedEvent)
 		ContextClosedEvent.class.getName();
 	}
 
@@ -484,6 +485,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see org.springframework.core.io.support.PathMatchingResourcePatternResolver
 	 */
 	protected ResourcePatternResolver getResourcePatternResolver() {
+		// getResources() 用于载入资源, 传入 this ,将 this 设置为 Spring 的资源加载器
 		return new PathMatchingResourcePatternResolver(this);
 	}
 
@@ -546,43 +548,46 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		synchronized (this.startupShutdownMonitor) {
 			StartupStep contextRefresh = this.applicationStartup.start("spring.context.refresh");
 
-			// Prepare this context for refreshing.
+			// STEP 1: 刷新准备
 			prepareRefresh();
 
-			// Tell the subclass to refresh the internal bean factory.
+			// STEP 2: 创建IOC容器(BeanFactory); 解析 XML文件到 Document对象; 读取 Document对象，加载 BeanDefinition 并注册到 BeanDefinitionRegistry
+			// hint : obtainFreshBeanFactory 方法创建 BeanFactory ,加载 BeanDefinition
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
-			// Prepare the bean factory for use in this context.
+			// STEP 3: 对 BeanFactory 容器进行一些预处理（context的类加载器等）
 			prepareBeanFactory(beanFactory);
 
 			try {
-				// Allows post-processing of the bean factory in context subclasses.
+				// STEP 4: 对 BeanFactory 进行后置处理
 				postProcessBeanFactory(beanFactory);
 
 				StartupStep beanPostProcess = this.applicationStartup.start("spring.context.beans.post-process");
-				// Invoke factory processors registered as beans in the context.
+
+				// STEP 5: 实例化并调用实现了 BeanFactoryPostProcessor(后置处理器) 接口的 Bean
 				invokeBeanFactoryPostProcessors(beanFactory);
 
-				// Register bean processors that intercept bean creation.
+				// STEP 6:  注册 BeanPostProcessors 后置处理器,，在创建bean的前后等执⾏
 				registerBeanPostProcessors(beanFactory);
 				beanPostProcess.end();
 
-				// Initialize message source for this context.
+				//  STEP 7： 初始化 MessageSource 组件（做国际化功能；消息绑定，消息解析）
 				initMessageSource();
 
-				// Initialize event multicaster for this context.
+				// STEP 8： 初始化应用事件广播器
 				initApplicationEventMulticaster();
 
-				// Initialize other special beans in specific context subclasses.
+				// STEP 9： ⼦类重写这个⽅法，在容器刷新的时候可以⾃定义逻辑
 				onRefresh();
 
-				// Check for listener beans and register them.
+				// STEP 10： 注册监听器(册实现了ApplicationListener接⼝的监听器bean)
 				registerListeners();
 
-				// Instantiate all remaining (non-lazy-init) singletons.
+				// STEP 11： 实例化剩余的 非懒加载的 单例 Bean, 填充属性,初始化方法调用（如 afterPropertiesSet、init-method）,后置处理器
+				// Hint：Bean的实例化 IoC、DI和 AOP都是发生在此步骤
 				finishBeanFactoryInitialization(beanFactory);
 
-				// Last step: publish corresponding event.
+				// STEP 12： 完成刷新，发布事件
 				finishRefresh();
 			}
 
@@ -668,6 +673,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see #getBeanFactory()
 	 */
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
+		// 销毁旧容器,创建新的 IoC 容器
+		// Hint： refreshBeanFactory方法 创建 BeanFactory  加载 BeanDefinition 对象
 		refreshBeanFactory();
 		return getBeanFactory();
 	}
@@ -678,14 +685,14 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @param beanFactory the BeanFactory to configure
 	 */
 	protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-		// Tell the internal bean factory to use the context's class loader etc.
+		// 设置 Bean工厂 context 使用的类加载器
 		beanFactory.setBeanClassLoader(getClassLoader());
 		if (!shouldIgnoreSpel) {
 			beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));
 		}
 		beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));
 
-		// Configure the bean factory with context callbacks.
+		// 使用 context 回调 配置工厂
 		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
 		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
 		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
@@ -887,7 +894,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * initializing all remaining singleton beans.
 	 */
 	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
-		// Initialize conversion service for this context.
+		// 初始化 context 转换服务
 		if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) &&
 				beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
 			beanFactory.setConversionService(
@@ -913,7 +920,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		// Allow for caching all bean definition metadata, not expecting further changes.
 		beanFactory.freezeConfiguration();
 
-		// Instantiate all remaining (non-lazy-init) singletons.
+		// 实例化所有单例对象
+		// 入口提示 : 创建 Bean
 		beanFactory.preInstantiateSingletons();
 	}
 
@@ -1168,6 +1176,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	@Override
 	public <T> T getBean(Class<T> requiredType) throws BeansException {
 		assertBeanFactoryActive();
+		// 入口提示 : 懒加载的 Bean
 		return getBeanFactory().getBean(requiredType);
 	}
 
