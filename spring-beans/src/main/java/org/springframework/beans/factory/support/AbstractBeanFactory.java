@@ -258,17 +258,17 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			// 针对 FactoryBean 的处理
 			beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		} else {
-			// STEP 3: 原型 Bena检测循环依赖,存在则抛异常 (多例的循环依赖 无法解决)
 			/*
 				多例的循环依赖是无法解决的,因为对象并不被Spring管理(处于游离态,还没创建),依赖其的 Bean 自然无法完成注入
 				单例的循环依赖,如果是Set方法注入是可以解决的,但构造器注入方式是无法解决的,因为对象没创建,依赖其的 Bean 无法完成构造,对方无法构造,自己也就无法构造创建
 				单例Set方式循环依赖解决方案：三级缓存池
 				例(A、B循环依赖) :
-					1. A对象 创建后不进行属性注入，放入三级缓存					[实际上，A 创建后,会先到缓存中找 B,此时找不到,将自己创建,放入缓存。 详情见 本方法内的 STEP7]
-					2. B对象 构造时,查询三级缓存,若有A,将A升级到 二级缓存中		[B 找到 A 后,可以完成属性注入,将直接放入一级缓存]
-					3. B创建后,将 B 放入一级缓存,触发 addSingleton方法将 A 继续初始化
+					1. A对象 创建后，从缓存获取B。获取不到则先不注入B，将自己放入缓存
+					2. B对象 构造时,查询三级缓存,若有A,将A升级到 二级缓存中。并完成属性注入，直接将自己放入一级缓存
+					3. 触发 addSingleton方法将 A 继续初始化
 					4. A在一级缓存中查到 B,注入 B 对象
 			 */
+			// STEP 3: 原型 Bena检测循环依赖,存在则抛异常 (多例的循环依赖 无法解决)
 			if (isPrototypeCurrentlyInCreation(beanName)) {
 				throw new BeanCurrentlyInCreationException(beanName);
 			}
@@ -349,10 +349,12 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					// It's a prototype -> create a new instance.
 					Object prototypeInstance = null;
 					try {
+						// 添加原型Bean正在创建的标记 , 然后创建原型 Bean
 						beforePrototypeCreation(beanName);
 						prototypeInstance = createBean(beanName, mbd, args);
 					}
 					finally {
+						// 创建完成后删除标记
 						afterPrototypeCreation(beanName);
 					}
 					beanInstance = getObjectForBeanInstance(prototypeInstance, name, beanName, mbd);
