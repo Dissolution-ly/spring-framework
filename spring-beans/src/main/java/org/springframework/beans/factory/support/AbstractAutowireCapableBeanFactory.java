@@ -436,8 +436,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			throws BeansException {
 
 		Object result = existingBean;
-		// 获取 触发 后置处理器
-		// 众多后置处理器中，其中 AspectJAwareAdvisorAutoProxyCreate 处理 AOP : org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator#postProcessAfterInitialization
+		// 循环执行 后置处理器
+		// AspectJAwareAdvisorAutoProxyCreate 处理 AOP :AbstractAutoProxyCreator#postProcessAfterInitialization
 		for (BeanPostProcessor processor : getBeanPostProcessors()) {
 			Object current = processor.postProcessAfterInitialization(result, beanName);
 			if (current == null) {
@@ -1735,16 +1735,20 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @see #applyBeanPostProcessorsAfterInitialization
 	 */
 	protected Object initializeBean(String beanName, Object bean, @Nullable RootBeanDefinition mbd) {
-		// 如果实现了 Aware 接口 ，在这里进行出发调用
+		/**
+		 * 初始化 Bean，init-method,后置处理器
+		 */
+		// 执⾏所有的AwareMethods (实现了 Aware 接口)
 		invokeAwareMethods(beanName, bean);
 
 		Object wrappedBean = bean;
 		if (mbd == null || !mbd.isSynthetic()) {
+			// 执⾏所有的BeanPostProcessor#postProcessBeforeInitialization 初始化之前的处理器⽅法
 			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 		}
 
 		try {
-			// 初始化方法调用
+			// 执⾏afterPropertiesSet（实现了InitializingBean接⼝）⽅法 和 initMethod
 			invokeInitMethods(beanName, wrappedBean, mbd);
 		}
 		catch (Throwable ex) {
@@ -1753,8 +1757,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					beanName, "Invocation of init method failed", ex);
 		}
 		if (mbd == null || !mbd.isSynthetic()) {
-			// after
 			// 入口提示 : AOP
+			// 整个Bean初始化完成，执⾏后置处理器⽅法
 			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 		}
 

@@ -293,6 +293,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	@Override
 	public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
 		if (bean != null) {
+			// 检查下该类是否已经暴露过了（A依赖B，创建A时就会创建B,此时没必要在代理B)
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
 			if (this.earlyProxyReferences.remove(cacheKey) != bean) {
 				// 使用动态代理技术，产生代理对象
@@ -332,6 +333,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 * @return a proxy wrapping the bean, or the raw bean instance as-is
 	 */
 	protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
+		// 如果 targetSourcedBeans 中存在，则之前创建过，直接跳过
 		if (StringUtils.hasLength(beanName) && this.targetSourcedBeans.contains(beanName)) {
 			return bean;
 		}
@@ -342,7 +344,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			this.advisedBeans.put(cacheKey, Boolean.FALSE);
 			return bean;
 		}
-
+		// 得到所有候选 Advisor 和 Bean的⽅法 双层遍历匹配，最终得到⼀个 List<Advisor> specificInterceptors
 		// 如果存在与 Bean 相匹配的 Advisors ,则给该 Bean 创建代理
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
 		if (specificInterceptors != DO_NOT_PROXY) {
@@ -431,7 +433,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	}
 
 	/**
-	 * Create an AOP proxy for the given bean.
+	 * 为指定 Bean 创建 AOP 代理
 	 * @param beanClass the class of the bean
 	 * @param beanName the name of the bean
 	 * @param specificInterceptors the set of interceptors that is
@@ -469,7 +471,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 				evaluateProxyInterfaces(beanClass, proxyFactory);
 			}
 		}
-		// 把一些通用的拦截器 和 增强 都适配成 Advisor
+		// 把和 增一些通用的拦截器 强 都适配成 Advisor
 		Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
 		// 设置参数
 		proxyFactory.addAdvisors(advisors);
