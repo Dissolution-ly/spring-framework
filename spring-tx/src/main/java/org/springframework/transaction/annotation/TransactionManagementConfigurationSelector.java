@@ -47,6 +47,9 @@ public class TransactionManagementConfigurationSelector extends AdviceModeImport
 	protected String[] selectImports(AdviceMode adviceMode) {
 		switch (adviceMode) {
 			case PROXY:
+				// 两个类的联系：
+				// AutoProxyRegistrar 中 InfrastructureAdvisorAutoProxyCreator后置处理器,会在代理对象执⾏⽬标⽅法的时候获取其拦截器链
+				// ⽽拦截器链就是 ProxyTransactionManagementConfiguration 中配置的 TransactionInterceptor
 				return new String[] {AutoProxyRegistrar.class.getName(),
 						ProxyTransactionManagementConfiguration.class.getName()};
 			case ASPECTJ:
