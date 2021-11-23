@@ -102,7 +102,7 @@ public class ProxyCreatorSupport extends AdvisedSupport {
 		if (!this.active) {
 			activate();
 		}
-		//先获取创建AopProxy的⼯⼚, 再由此创建AopProxy
+		//先获取创建AopProxy的⼯⼚, 再由此创建AopProxy(这⾥决定创建代理对象是⽤JDK Proxy，还是⽤ Cglib)
 		return getAopProxyFactory().createAopProxy(this);
 	}
 
