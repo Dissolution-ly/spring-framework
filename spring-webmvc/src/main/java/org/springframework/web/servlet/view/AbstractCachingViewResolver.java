@@ -171,6 +171,7 @@ public abstract class AbstractCachingViewResolver extends WebApplicationObjectSu
 	@Nullable
 	public View resolveViewName(String viewName, Locale locale) throws Exception {
 		if (!isCache()) {
+			// 解析出 View 对象过程中会判断是否重定向、是否转发等，返回不同 View 实现
 			return createView(viewName, locale);
 		}
 		else {
@@ -180,7 +181,7 @@ public abstract class AbstractCachingViewResolver extends WebApplicationObjectSu
 				synchronized (this.viewCreationCache) {
 					view = this.viewCreationCache.get(cacheKey);
 					if (view == null) {
-						// Ask the subclass to create the View object.
+						// 请求子类创建 View 对象
 						view = createView(viewName, locale);
 						if (view == null && this.cacheUnresolved) {
 							view = UNRESOLVED_VIEW;

@@ -140,13 +140,15 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	 * @see #doInvoke
 	 */
 	@Nullable
-	public Object invokeForRequest(NativeWebRequest request, @Nullable ModelAndViewContainer mavContainer,
-			Object... providedArgs) throws Exception {
-
+	public Object invokeForRequest(NativeWebRequest request,
+								   @Nullable ModelAndViewContainer mavContainer,
+								   Object... providedArgs) throws Exception {
+		// 将 request 中的参数转换为当前 Handler 的参数性
 		Object[] args = getMethodArgumentValues(request, mavContainer, providedArgs);
 		if (logger.isTraceEnabled()) {
 			logger.trace("Arguments: " + Arrays.toString(args));
 		}
+		// 结合处理后的参数，使用反射对目标方法进行调用
 		return doInvoke(args);
 	}
 

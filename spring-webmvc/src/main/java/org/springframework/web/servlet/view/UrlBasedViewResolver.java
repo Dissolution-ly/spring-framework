@@ -468,7 +468,7 @@ public class UrlBasedViewResolver extends AbstractCachingViewResolver implements
 			return null;
 		}
 
-		// Check for special "redirect:" prefix.
+		// 检查前缀: "redirect:"
 		if (viewName.startsWith(REDIRECT_URL_PREFIX)) {
 			String redirectUrl = viewName.substring(REDIRECT_URL_PREFIX.length());
 			RedirectView view = new RedirectView(redirectUrl,
@@ -480,14 +480,14 @@ public class UrlBasedViewResolver extends AbstractCachingViewResolver implements
 			return applyLifecycleMethods(REDIRECT_URL_PREFIX, view);
 		}
 
-		// Check for special "forward:" prefix.
+		// 检查前缀: "forward:"
 		if (viewName.startsWith(FORWARD_URL_PREFIX)) {
 			String forwardUrl = viewName.substring(FORWARD_URL_PREFIX.length());
 			InternalResourceView view = new InternalResourceView(forwardUrl);
 			return applyLifecycleMethods(FORWARD_URL_PREFIX, view);
 		}
 
-		// Else fall back to superclass implementation: calling loadView.
+		// 返回超类实现，调用 loadView
 		return super.createView(viewName, locale);
 	}
 
@@ -546,6 +546,7 @@ public class UrlBasedViewResolver extends AbstractCachingViewResolver implements
 	 */
 	@Override
 	protected View loadView(String viewName, Locale locale) throws Exception {
+		// 构建试图
 		AbstractUrlBasedView view = buildView(viewName);
 		View result = applyLifecycleMethods(viewName, view);
 		return (view.checkResource(locale) ? result : null);
@@ -567,6 +568,7 @@ public class UrlBasedViewResolver extends AbstractCachingViewResolver implements
 	 */
 	protected AbstractUrlBasedView buildView(String viewName) throws Exception {
 		AbstractUrlBasedView view = instantiateView();
+		// 逻辑试图名转换为物理试图名
 		view.setUrl(getPrefix() + viewName + getSuffix());
 		view.setAttributesMap(getAttributesMap());
 

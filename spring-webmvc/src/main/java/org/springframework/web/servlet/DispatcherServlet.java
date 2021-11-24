@@ -492,14 +492,23 @@ public class DispatcherServlet extends FrameworkServlet {
 	 * <p>May be overridden in subclasses in order to initialize further strategy objects.
 	 */
 	protected void initStrategies(ApplicationContext context) {
+		// 多文件上传组件
 		initMultipartResolver(context);
+		// 初始化本地语言环境
 		initLocaleResolver(context);
+		// 初始化模板处理器
 		initThemeResolver(context);
+		// 初始化 HandlerMapping
 		initHandlerMappings(context);
+		// 初始化参数适配器
 		initHandlerAdapters(context);
+		// 初始化异常拦截器
 		initHandlerExceptionResolvers(context);
+		// 初始化视图预处理器
 		initRequestToViewNameTranslator(context);
+		// 初始化视图转换器
 		initViewResolvers(context);
+		// 初始化 FlashMap 管理器
 		initFlashMapManager(context);
 	}
 
@@ -585,8 +594,9 @@ public class DispatcherServlet extends FrameworkServlet {
 	private void initHandlerMappings(ApplicationContext context) {
 		this.handlerMappings = null;
 
+		// 判断是否期望的是所有的 HandlerMapping (默认true), 否则仅仅获取id为 handlerMapping
 		if (this.detectAllHandlerMappings) {
-			// Find all HandlerMappings in the ApplicationContext, including ancestor contexts.
+			// 按照 HandlerMapping.class 类型去IOC容器(包括父容器)中找到所有的 HandlerMapping
 			Map<String, HandlerMapping> matchingBeans =
 					BeanFactoryUtils.beansOfTypeIncludingAncestors(context, HandlerMapping.class, true, false);
 			if (!matchingBeans.isEmpty()) {
@@ -597,6 +607,7 @@ public class DispatcherServlet extends FrameworkServlet {
 		}
 		else {
 			try {
+				// 否则在IOC中按照固定名称 Id (handlerMapping) 找
 				HandlerMapping hm = context.getBean(HANDLER_MAPPING_BEAN_NAME, HandlerMapping.class);
 				this.handlerMappings = Collections.singletonList(hm);
 			}
@@ -605,9 +616,9 @@ public class DispatcherServlet extends FrameworkServlet {
 			}
 		}
 
-		// Ensure we have at least one HandlerMapping, by registering
-		// a default HandlerMapping if no other mappings are found.
+		// 如果前面一个都没有注册成功(根据Id找没有找到)
 		if (this.handlerMappings == null) {
+			// 如果还是为null 则按照默认方式实例化生成 HandlerMapping
 			this.handlerMappings = getDefaultStrategies(context, HandlerMapping.class);
 			if (logger.isTraceEnabled()) {
 				logger.trace("No HandlerMappings declared for servlet '" + getServletName() +
@@ -871,6 +882,7 @@ public class DispatcherServlet extends FrameworkServlet {
 		}
 
 		String key = strategyInterface.getName();
+		// value -> DispatcherServlet.properties
 		String value = defaultStrategies.getProperty(key);
 		if (value != null) {
 			String[] classNames = StringUtils.commaDelimitedListToStringArray(value);
@@ -1144,8 +1156,9 @@ public class DispatcherServlet extends FrameworkServlet {
 			}
 		}
 
-		// Did the handler return a view to render?
+		// 判断 处理程序返回的视图是否需要渲染
 		if (mv != null && !mv.wasCleared()) {
+			// 完成渲染
 			render(mv, request, response);
 			if (errorView) {
 				WebUtils.clearErrorRequestAttributes(request);
@@ -1377,7 +1390,7 @@ public class DispatcherServlet extends FrameworkServlet {
 		View view;
 		String viewName = mv.getViewName();
 		if (viewName != null) {
-			// We need to resolve the view name.
+			// STEP1 : 视图解析器解析出 View视图 对象
 			view = resolveViewName(viewName, mv.getModelInternal(), locale, request);
 			if (view == null) {
 				throw new ServletException("Could not resolve view with name '" + mv.getViewName() +
@@ -1401,6 +1414,7 @@ public class DispatcherServlet extends FrameworkServlet {
 			if (mv.getStatus() != null) {
 				response.setStatus(mv.getStatus().value());
 			}
+			// STEP2 : 渲染数据
 			view.render(mv.getModelInternal(), request, response);
 		}
 		catch (Exception ex) {
@@ -1442,6 +1456,7 @@ public class DispatcherServlet extends FrameworkServlet {
 
 		if (this.viewResolvers != null) {
 			for (ViewResolver viewResolver : this.viewResolvers) {
+				// 解析出 View 对象过程中会判断是否重定向、是否转发等，返回不同 View 实现
 				View view = viewResolver.resolveViewName(viewName, locale);
 				if (view != null) {
 					return view;
