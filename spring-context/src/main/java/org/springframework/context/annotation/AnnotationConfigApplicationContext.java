@@ -65,9 +65,15 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * through {@link #register} calls and then manually {@linkplain #refresh refreshed}.
 	 */
 	public AnnotationConfigApplicationContext() {
+		// 会隐式调用父类的构造方法，初始化 DefaultListableBeanFactory
+
 		StartupStep createAnnotatedBeanDefReader = this.getApplicationStartup().start("spring.context.annotated-bean-reader.create");
+		// 初始化 Bean 读取器 (读取注解 Bean)：
+		// 		1. 注册内置 BeanPostProcessor
+		// 		2. 注册相关的 BeanDefinition
 		this.reader = new AnnotatedBeanDefinitionReader(this);
 		createAnnotatedBeanDefReader.end();
+		// 初始化一个扫描器，它仅仅是在我们外部手动调用 .scan 等方法才有用，常规方式是不会用到scanner对象的
 		this.scanner = new ClassPathBeanDefinitionScanner(this);
 	}
 
@@ -87,8 +93,17 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * @param componentClasses one or more component classes &mdash; for example,
 	 * {@link Configuration @Configuration} classes
 	 */
+	// 根据参数类型可以知道，其实可以传入多个配置类annotatedClasses，但是这种情况出现的比较少
+	// 配置类有两种情况：
+	// 1. 带 @Configuration 注解的配置类(Spring称为 FULL配置类，我们暂且称为传统配置类)
+	// 2. @ComponentScan、@Component、@Import、@ImportResouce 注解的配置类(Spring称为 Lite配置类，我们暂且称为普通Bean)
 	public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
+		// 调用无参构造函数，会先调用父类 GenericApplicationContext 的构造函数
+		// 父类构造函数初始化 DefaultListableBeanFactory，并且赋值给 beanFactory
+		// 本类构造器初始化了 AnnotatedBeanDefinitionReader 读取器 和 ClassPathBeanDefinitionScanner 扫描器
+		// scanner 仅仅在我们外部手动调用 .scan 等方法才有用，常规方式是不会用到 scanner对象的
 		this();
+		// 把传入的类进行注册
 		register(componentClasses);
 		refresh();
 	}

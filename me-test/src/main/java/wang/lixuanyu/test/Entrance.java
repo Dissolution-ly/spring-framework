@@ -11,7 +11,7 @@ public class Entrance {
 		// ApplicationContext (高级IOC)
 		ApplicationContext context = new ClassPathXmlApplicationContext("spring.xml");
 		ApplicationContext fileContext = new FileSystemXmlApplicationContext("D:\\spring.xml");
-		ApplicationContext annotationContext = new AnnotationConfigApplicationContext();
+		ApplicationContext annotationContext = new AnnotationConfigApplicationContext(Entrance.class);
 		System.out.println(context);
 	}
 
