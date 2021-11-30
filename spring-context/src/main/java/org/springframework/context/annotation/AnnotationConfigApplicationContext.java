@@ -100,7 +100,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
 		// 调用无参构造函数，会先调用父类 GenericApplicationContext 的构造函数
 		// 父类构造函数初始化 DefaultListableBeanFactory，并且赋值给 beanFactory
-		// 本类构造器初始化了 AnnotatedBeanDefinitionReader 读取器 和 ClassPathBeanDefinitionScanner 扫描器
+		// 本类构造器初始化了 AnnotatedBeanDefinitionReader 读取器并初始化内部Bean 和 ClassPathBeanDefinitionScanner 扫描器
 		// scanner 仅仅在我们外部手动调用 .scan 等方法才有用，常规方式是不会用到 scanner对象的
 		this();
 		// 把传入的类进行注册

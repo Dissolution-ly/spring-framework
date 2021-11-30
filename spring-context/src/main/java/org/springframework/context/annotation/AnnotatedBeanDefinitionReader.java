@@ -250,17 +250,24 @@ public class AnnotatedBeanDefinitionReader {
 			@Nullable Class<? extends Annotation>[] qualifiers, @Nullable Supplier<T> supplier,
 			@Nullable BeanDefinitionCustomizer[] customizers) {
 
+		// 传入的类转换为 AnnotatedGenericBeanDefinition(直译：带有注解标记的 BeanDefinition)
 		AnnotatedGenericBeanDefinition abd = new AnnotatedGenericBeanDefinition(beanClass);
+		// 判断是否需要跳过注解，@Condition注解不满足条件时，bean不会被解析
+		// getMetadata() 可以获取类上的注解
 		if (this.conditionEvaluator.shouldSkip(abd.getMetadata())) {
 			return;
 		}
 
 		abd.setInstanceSupplier(supplier);
+		// 解析 bean 的作用域，没有设置 默认单例
 		ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(abd);
 		abd.setScope(scopeMetadata.getScopeName());
+		// 获得 beanName
 		String beanName = (name != null ? name : this.beanNameGenerator.generateBeanName(abd, this.registry));
 
+		// 解析通用注解(Lazy，Primary，DependsOn，Role，Description),填充到到 AnnotatedGenericBeanDefinition,
 		AnnotationConfigUtils.processCommonDefinitionAnnotations(abd);
+		// 限定符处理(@Qualifier、@Primary、@Lazy...),理论上是任何注解，这里没有判断有效性
 		if (qualifiers != null) {
 			for (Class<? extends Annotation> qualifier : qualifiers) {
 				if (Primary.class == qualifier) {
@@ -270,6 +277,7 @@ public class AnnotatedBeanDefinitionReader {
 					abd.setLazyInit(true);
 				}
 				else {
+					// 其他，AnnotatedGenericBeanDefinition 有个 Map<String,AutowireCandidateQualifier> 属性，直接 put进去
 					abd.addQualifier(new AutowireCandidateQualifier(qualifier));
 				}
 			}
@@ -280,8 +288,12 @@ public class AnnotatedBeanDefinitionReader {
 			}
 		}
 
+		// 把AnnotatedGenericBeanDefinition数据结构和beanName封装到一个对象中(用处不大)
 		BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(abd, beanName);
 		definitionHolder = AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
+
+		// 最终会调用 DefaultListableBeanFactory 中的 registerBeanDefinition方法去注册
+		// DefaultListableBeanFactory 维护着一系列信息，比如 beanDefinitionNames，beanDefinitionMap
 		BeanDefinitionReaderUtils.registerBeanDefinition(definitionHolder, this.registry);
 	}
 
