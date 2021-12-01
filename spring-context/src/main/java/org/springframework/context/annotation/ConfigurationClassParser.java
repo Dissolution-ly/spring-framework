@@ -226,6 +226,7 @@ class ConfigurationClassParser {
 
 
 	protected void processConfigurationClass(ConfigurationClass configClass, Predicate<String> filter) throws IOException {
+		// 判断是否需要跳过
 		if (this.conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.PARSE_CONFIGURATION)) {
 			return;
 		}
@@ -254,6 +255,7 @@ class ConfigurationClassParser {
 		}
 		while (sourceClass != null);
 
+		// 把 configClass 放入Map,会在后面的容器初始化流程用到
 		this.configurationClasses.put(configClass, configClass);
 	}
 
@@ -269,13 +271,14 @@ class ConfigurationClassParser {
 	protected final SourceClass doProcessConfigurationClass(
 			ConfigurationClass configClass, SourceClass sourceClass, Predicate<String> filter)
 			throws IOException {
-
+		// STEP 1 ： 递归处理内部类,一般不会写内部类
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
 			processMemberClasses(configClass, sourceClass, filter);
 		}
 
 		// Process any @PropertySource annotations
+		// STEP 2 ： 处理 @PropertySource ,该注解用来加载 properties 文件
 		for (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), PropertySources.class,
 				org.springframework.context.annotation.PropertySource.class)) {
@@ -289,12 +292,15 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @ComponentScan annotations
+		// STEP 3 ： 获得 @ComponentScan 具体的内容，除了最常用的 basePackage之外，还有 includeFilters，excludeFilters...
 		Set<AnnotationAttributes> componentScans = AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
+		// STEP 4 ： 没有带上 @ComponentScan，或者被 @Condition 条件跳过，就不再进入这个if
 		if (!componentScans.isEmpty() &&
 				!this.conditionEvaluator.shouldSkip(sourceClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN)) {
 			for (AnnotationAttributes componentScan : componentScans) {
 				// The config class is annotated with @ComponentScan -> perform the scan immediately
+				// componentScan就是@ComponentScan上的具体内容，sourceClass.getMetadata().getClassName() 就是配置类的名称
 				Set<BeanDefinitionHolder> scannedBeanDefinitions =
 						this.componentScanParser.parse(componentScan, sourceClass.getMetadata().getClassName());
 				// Check the set of scanned definitions for any further config classes and parse recursively if needed
@@ -304,6 +310,7 @@ class ConfigurationClassParser {
 						bdCand = holder.getBeanDefinition();
 					}
 					if (ConfigurationClassUtils.checkConfigurationClassCandidate(bdCand, this.metadataReaderFactory)) {
+						// 递归调用，因为可能组件类有被@Bean标记的方法，或者组件类本身也有 @ComponentScan
 						parse(bdCand.getBeanClassName(), holder.getBeanName());
 					}
 				}
@@ -311,9 +318,12 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @Import annotations
+		// STEP 5 ： 处理 @Import，一种是Import普通类，一种是Import ImportSelector，还有一种是Import ImportBeanDefinitionRegistrar
+		// getImports(sourceClass) 获得 import 的内容，返回的是一个set
 		processImports(configClass, sourceClass, getImports(sourceClass), filter, true);
 
 		// Process any @ImportResource annotations
+		// STEP 6 ： 处理 @ImportResource
 		AnnotationAttributes importResource =
 				AnnotationConfigUtils.attributesFor(sourceClass.getMetadata(), ImportResource.class);
 		if (importResource != null) {
@@ -326,6 +336,7 @@ class ConfigurationClassParser {
 		}
 
 		// Process individual @Bean methods
+		// STEP 7 ： 处理 @Bean 的方法，不是马上转换成BeanDefinition，而是先用一个set接收
 		Set<MethodMetadata> beanMethods = retrieveBeanMethodMetadata(sourceClass);
 		for (MethodMetadata methodMetadata : beanMethods) {
 			configClass.addBeanMethod(new BeanMethod(methodMetadata, configClass));
