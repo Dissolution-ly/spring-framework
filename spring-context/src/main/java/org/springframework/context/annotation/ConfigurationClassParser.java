@@ -169,8 +169,10 @@ class ConfigurationClassParser {
 
 	public void parse(Set<BeanDefinitionHolder> configCandidates) {
 		for (BeanDefinitionHolder holder : configCandidates) {
+			// 获得 BeanDefinition
 			BeanDefinition bd = holder.getBeanDefinition();
 			try {
+				// 如果 BeanDefinition 是 AnnotatedBeanDefinition 的实例
 				if (bd instanceof AnnotatedBeanDefinition) {
 					parse(((AnnotatedBeanDefinition) bd).getMetadata(), holder.getBeanName());
 				}
@@ -190,6 +192,7 @@ class ConfigurationClassParser {
 			}
 		}
 
+		// 执行 DeferredImportSelector
 		this.deferredImportSelectorHandler.process();
 	}
 

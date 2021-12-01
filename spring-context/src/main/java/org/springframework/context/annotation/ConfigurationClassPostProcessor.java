@@ -275,26 +275,44 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	 */
 	public void processConfigBeanDefinitions(BeanDefinitionRegistry registry) {
 		List<BeanDefinitionHolder> configCandidates = new ArrayList<>();
+		// 获得所有的 BeanDefinition 的 Name，放入 candidateNames 数组
 		String[] candidateNames = registry.getBeanDefinitionNames();
 
+		// 内部有两个标记位来标记是否已经处理过了
+		// 这里会引发一连串知识盲点
+		// 当我们注册配置类的时候，如果加了Configuration注解，就称之为Full配置类
+		// 如果不加Configuration注解，直接使用@Component、@ComponentScan、@Import、@ImportResource，称之为Lite配置类
+		// getBean()获取Lite配置类，会发现它就是原本的那个配置类
+		// getBean()获取Full配置类，会发现它已经不是原本那个配置类了，而是已经被cgilb代理的类了
+		// 验证/例子： 已知 A类构造方法，打印 “你好” (用于查看构造器被调用次数)
+		// 写一个配置类，有两个@bean的方法，分别调用两个方法
+		// 		一 ：return new A();  称为 getA();
+		// 		二 ：return getA();
+		// 如果配置类是Lite配置类，会打印两次“你好”，也就是说A类被new了两次
+		// 如果配置类是Full配置类，只打印一次“你好”，也就是说A类只被new了一次，因为这个类被cgilb代理了，方法已经被改写
 		for (String beanName : candidateNames) {
+			// 根据 beanName 获得 BeanDefinition
 			BeanDefinition beanDef = registry.getBeanDefinition(beanName);
 			if (beanDef.getAttribute(ConfigurationClassUtils.CONFIGURATION_CLASS_ATTRIBUTE) != null) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Bean definition has already been processed as a configuration class: " + beanDef);
 				}
 			}
+			// 在这个方法内部，会做判断，这个配置类是Full配置类，还是Lite配置类，并且做上标记
 			else if (ConfigurationClassUtils.checkConfigurationClassCandidate(beanDef, this.metadataReaderFactory)) {
+				// 如果是配置类则添加到集合中
 				configCandidates.add(new BeanDefinitionHolder(beanDef, beanName));
 			}
 		}
 
 		// Return immediately if no @Configuration classes were found
+		// 如果没有配置类，直接返回
 		if (configCandidates.isEmpty()) {
 			return;
 		}
 
 		// Sort by previously determined @Order value, if applicable
+		// 处理排序
 		configCandidates.sort((bd1, bd2) -> {
 			int i1 = ConfigurationClassUtils.getOrder(bd1.getBeanDefinition());
 			int i2 = ConfigurationClassUtils.getOrder(bd2.getBeanDefinition());
@@ -303,8 +321,10 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 
 		// Detect any custom bean name generation strategy supplied through the enclosing application context
 		SingletonBeanRegistry sbr = null;
+		// DefaultListableBeanFactory 会实现 SingletonBeanRegistry 接口
 		if (registry instanceof SingletonBeanRegistry) {
 			sbr = (SingletonBeanRegistry) registry;
+			// spring中可以修改默认的bean命名方式，这里就是看用户有没有自定义bean命名方式
 			if (!this.localBeanNameGeneratorSet) {
 				BeanNameGenerator generator = (BeanNameGenerator) sbr.getSingleton(
 						AnnotationConfigUtils.CONFIGURATION_BEAN_NAME_GENERATOR);
@@ -327,6 +347,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
 		do {
+			// ！！！ 解析配置类（传统意义上的配置类或者是普通bean） ！！！ 高能预警，核心来了
 			StartupStep processConfig = this.applicationStartup.start("spring.context.config-classes.parse");
 			parser.parse(candidates);
 			parser.validate();
@@ -340,15 +361,20 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 						registry, this.sourceExtractor, this.resourceLoader, this.environment,
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
+			// 直到这一步才把Import的类，@Bean @ImportResource 转换成BeanDefinition
 			this.reader.loadBeanDefinitions(configClasses);
+			// 把 configClasses 加入到 alreadyParsed，代表
 			alreadyParsed.addAll(configClasses);
 			processConfig.tag("classCount", () -> String.valueOf(configClasses.size())).end();
 
 			candidates.clear();
+			// 获得注册器里面 BeanDefinition 的数量 和 candidateNames进行比较
+			// 如果大于的话，说明有新的BeanDefinition注册进来了
 			if (registry.getBeanDefinitionCount() > candidateNames.length) {
 				String[] newCandidateNames = registry.getBeanDefinitionNames();
 				Set<String> oldCandidateNames = new HashSet<>(Arrays.asList(candidateNames));
 				Set<String> alreadyParsedClasses = new HashSet<>();
+				// 循环 alreadyParsed。把类名加入到 alreadyParsedClasses
 				for (ConfigurationClass configurationClass : alreadyParsed) {
 					alreadyParsedClasses.add(configurationClass.getMetadata().getClassName());
 				}
