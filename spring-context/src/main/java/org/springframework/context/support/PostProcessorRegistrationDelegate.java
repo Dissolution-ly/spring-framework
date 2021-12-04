@@ -108,7 +108,7 @@ final class PostProcessorRegistrationDelegate {
 			// First, invoke the BeanDefinitionRegistryPostProcessors that implement PriorityOrdered.
 			// 获得实现 BeanDefinitionRegistryPostProcessors 接口的类的 BeanName,并装入 postProcessorNames 数组
 			// 一般情况下只会找到一个 ： context.annotation.internalConfigurationAnnotationProcessor
-			// 我自己创建了一个实现BeanDefinitionRegistryPostProcessor接口的类，加上@Component注解，配置类页添加@Component注解，但是这里却没有拿到
+			// 我自己创建了一个实现BeanDefinitionRegistryPostProcessor接口的类，加上@Component注解，配置类也添加 @Component，但是这里却没有拿到
 			// 因为直到这一步，Spring还没有去扫描，扫描是在 ConfigurationClassPostProcessor 类中完成的，也就是下面这步要做的
 			String[] postProcessorNames =
 					beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);

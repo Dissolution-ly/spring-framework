@@ -568,6 +568,7 @@ class ConfigurationClassParser {
 			Collection<SourceClass> importCandidates, Predicate<String> exclusionFilter,
 			boolean checkForCircularImports) {
 
+		// importCandidates是 Import 的内容
 		if (importCandidates.isEmpty()) {
 			return;
 		}
@@ -578,9 +579,17 @@ class ConfigurationClassParser {
 		else {
 			this.importStack.push(configClass);
 			try {
+				// 有三种情况调用该方法： 1.Import普通类，2.Import ImportSelector，3.Import ImportBeanDefinitionRegistrar
+				// 循环处理 importCandidates，判断属于哪种情况，并进行对应处理
 				for (SourceClass candidate : importCandidates) {
+					// 然后判断是不是DeferredImportSelector，DeferredImportSelector扩展了ImportSelector
+					// 如果不是的话，调用selectImports方法，获得全限定类名数组，在转换成类的数组，然后再调用processImports，又特 么的是一个递归调用...
+					// 可能又有三种情况，一种情况是selectImports的类是一个普通类，第二种情况是selectImports的类是一个ImportBean DefinitionRegistrar类，第三种情况是还是一个ImportSelector类...
+					// 所以又需要递归调用
+					// 如果Import ImportBeanDefinitionRegistrar就跑到了第二个if，还是会执行Aware接口方法，这里终于没有递归了， 会把数据放到ConfigurationClass中的Map<ImportBeanDefinitionRegistrar, AnnotationMetadata> importBeanDefini tionRegistrars中去
 					if (candidate.isAssignable(ImportSelector.class)) {
 						// Candidate class is an ImportSelector -> delegate to it to determine imports
+						// 如果是 ImportSelector，首先执行Aware接口方法，所以我们在实现ImportSelector的同时，还可以实现Aware接口
 						Class<?> candidateClass = candidate.loadClass();
 						ImportSelector selector = ParserStrategyUtils.instantiateClass(candidateClass, ImportSelector.class,
 								this.environment, this.resourceLoader, this.registry);
@@ -607,8 +616,9 @@ class ConfigurationClassParser {
 						configClass.addImportBeanDefinitionRegistrar(registrar, currentSourceClass.getMetadata());
 					}
 					else {
-						// Candidate class not an ImportSelector or ImportBeanDefinitionRegistrar ->
-						// process it as an @Configuration class
+						// 普通类，作为一个@Configuration类处理
+						// processImports() 和 processConfigurationClass() 递归调用
+						// 因为 @Import的普通类，也有可能被加了@Import、@ComponentScan或其他注解，所以普通类需要再次被解析
 						this.importStack.registerImport(
 								currentSourceClass.getMetadata(), candidate.getMetadata().getClassName());
 						processConfigurationClass(candidate.asConfigClass(configClass), exclusionFilter);
