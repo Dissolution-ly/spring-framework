@@ -902,7 +902,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			logger.trace("Pre-instantiating singletons in " + this);
 		}
 
-		// 已注册的所有beanDefinition集合
+		// 已注册的所有 BeanDefinition 集合
 		List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
 		// 遍历副本以允许init方法注册新的 BeanDefinition

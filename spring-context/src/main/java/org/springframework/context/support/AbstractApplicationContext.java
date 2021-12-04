@@ -452,6 +452,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		Assert.notNull(event, "Event must not be null");
 
 		// Decorate event as an ApplicationEvent if necessary
+		// STEP 1 ：如果有必要,将时间装饰为 ApplicationEvent
 		ApplicationEvent applicationEvent;
 		if (event instanceof ApplicationEvent) {
 			applicationEvent = (ApplicationEvent) event;
@@ -466,10 +467,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		if (this.earlyApplicationEvents != null) {
 			this.earlyApplicationEvents.add(applicationEvent);
 		} else {
+			// STEP 2 ：使用事件广播器广播事件到相应的监听器
 			getApplicationEventMulticaster().multicastEvent(applicationEvent, eventType);
 		}
 
 		// Publish event via parent context as well...
+		// // STEP 3 ：同样的，通过parent发布事件......
 		if (this.parent != null) {
 			if (this.parent instanceof AbstractApplicationContext) {
 				((AbstractApplicationContext) this.parent).publishEvent(event, eventType);
@@ -620,27 +623,30 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				// STEP 5: 实例化并调用 BeanFactoryPostProcessor(后置处理器)，自定义的(实现了接口的Bean) 和内置的
 				invokeBeanFactoryPostProcessors(beanFactory);
 
-				// STEP 6:  注册 BeanPostProcessors 后置处理器,在创建bean的前后等执⾏
+				// STEP 6:  注册 Bean 后置处理器,在创建 Bean 的前后等执⾏
 				registerBeanPostProcessors(beanFactory);
 				beanPostProcess.end();
 
-				//  STEP 7： 初始化 MessageSource 组件（做国际化功能；消息绑定，消息解析）
+				//  STEP 7： 初始化 MessageSource 组件（做国际化功能；消息绑定，消息解析）,非热门，学习价值低
 				initMessageSource();
 
 				// STEP 8： 初始化应用事件广播器(事件派发)
 				initApplicationEventMulticaster();
 
-				// STEP 9： ⼦类重写这个⽅法，在容器刷新的时候可以⾃定义逻辑
+				// STEP 9： 模板方法(⼦类重写这个⽅法)，在容器刷新的时候可以⾃定义逻辑
 				onRefresh();
 
 				// STEP 10： 注册监听器(实现了ApplicationListener接⼝的监听器bean)
 				registerListeners();
 
-				// STEP 11： 实例化剩余的 非懒加载的 单例 Bean, 填充属性,初始化方法调用（如 afterPropertiesSet、init-method）,后置处理器
+				// STEP 11： 实例化剩余的 非懒加载的单例Bean,填充属性,初始化方法调用（afterPropertiesSet、init-method...）,后置处理器
 				// Hint：Bean的实例化 IoC、DI和 AOP都是发生在此步骤
 				finishBeanFactoryInitialization(beanFactory);
 
 				// STEP 12： 完成刷新，发布事件
+				// 清除上下文缓存资源(如ASM元数据),
+				// 初始化上下文的声明周期处理器并刷新(执行实现了 Lifecycle 接口的 start 方法),
+				// 发布 ContextRefreshedEvent 事件告知对应的 ApplicationListener 进行响应的操作
 				finishRefresh();
 			} catch (BeansException ex) {
 				if (logger.isWarnEnabled()) {
@@ -991,12 +997,15 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	@SuppressWarnings("deprecation")
 	protected void finishRefresh() {
 		// Clear context-level resource caches (such as ASM metadata from scanning).
+		// STEP 1 ： 为此上下文初始化生命周期处理器
 		clearResourceCaches();
 
 		// Initialize lifecycle processor for this context.
+		// STEP 2 ： 首先将刷新完毕事件传播到生命周期处理器（触发 isAutoStartup方法 返回true的 SmartLifecycle的start方法）
 		initLifecycleProcessor();
 
 		// Propagate refresh to lifecycle processor first.
+		// STEP 3 ： 推送上下文刷新完毕事件到相应的监听器
 		getLifecycleProcessor().onRefresh();
 
 		// Publish the final event.

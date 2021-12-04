@@ -607,7 +607,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		try {
 			// Bean 属性填充
 			populateBean(beanName, mbd, instanceWrapper);
-			// 调用初始化方法 应用 BeanPostProcessor 后置处理器(AOP也在其中)
+			// 调用初始化方法 应用 BeanPostProcessor 后置处理器(AOP也在其中)，aware 系列方法的回调
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {
@@ -1734,10 +1734,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @see #invokeInitMethods
 	 * @see #applyBeanPostProcessorsAfterInitialization
 	 */
+	// 初始化 Bean，init-method,后置处理器
 	protected Object initializeBean(String beanName, Object bean, @Nullable RootBeanDefinition mbd) {
-		/**
-		 * 初始化 Bean，init-method,后置处理器
-		 */
 		// 执⾏所有的AwareMethods (实现了 Aware 接口)
 		invokeAwareMethods(beanName, bean);
 
