@@ -75,12 +75,15 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 
 
 	/** Cache of singleton objects: bean name to bean instance. */
+	// 一级缓存 ： 大名顶顶的单例池，缓存单例实例 (已完成属性注入、后置处理，全局可用)
 	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
 	/** Cache of singleton factories: bean name to ObjectFactory. */
+	// 三级缓存：缓存单例工厂
 	private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
 
 	/** Cache of early singleton objects: bean name to bean instance. */
+	// 二级缓存 ： 缓存早期的单例对象 (创建对象，以方面把引用赋值到其他Bean。未完成属性注入，后置处理。)
 	private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap<>(16);
 
 	/** Set of registered singletons, containing the bean names in registration order. */
@@ -179,24 +182,25 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
 		// Quick check for existing instance without full singleton lock
-		// 检查缓存中是否存在实例
+		// 检查一级缓存中是否存在实例
 		Object singletonObject = this.singletonObjects.get(beanName);
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
-			// 如果为空，则检查 缓存中是否存在该实例
+			// 如果为空，,且 singletonsCurrentlyInCreation(List) 包含该 beanName
+			// IOC容器初始化第一次进来时List一般为空,但是循环依赖时可以满足该条件则检查二级缓存中是否存在该实例
 			singletonObject = this.earlySingletonObjects.get(beanName);
 			if (singletonObject == null && allowEarlyReference) {
-				// 如果所有缓存中都获取不到该实例，则锁定全局变量进行 Bean的处理
+				// 二级缓存中都获取不到该实例，一级缓存作为锁，锁定后重新判断缓存中是否存在 (双重检查锁)
 				synchronized (this.singletonObjects) {
-					// 如果此Bean正在加载，则不处理
+					// 分别从一二三级缓存尝试获取
 					singletonObject = this.singletonObjects.get(beanName);
 					if (singletonObject == null) {
 						singletonObject = this.earlySingletonObjects.get(beanName);
 						if (singletonObject == null) {
 							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 							if (singletonFactory != null) {
-								// 调用预先设定的getObject方法
+								// 如果一二级缓存依然为空，且三级缓存不为空，则调用预先设定的getObject方法
 								singletonObject = singletonFactory.getObject();
-								// 将对象存入缓存
+								// 将对象存入缓存二级缓存，并从三级缓存中移除该对象的 ObjectFactory
 								this.earlySingletonObjects.put(beanName, singletonObject);
 								this.singletonFactories.remove(beanName);
 							}

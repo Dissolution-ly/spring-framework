@@ -591,7 +591,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			}
 		}
 
-		// 将 Bean 提前暴露到 Eagerly(二级缓存) 缓存中 (解决循环依赖)
+
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
 				isSingletonCurrentlyInCreation(beanName));
 		if (earlySingletonExposure) {
@@ -599,6 +599,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				logger.trace("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
+			// 执行拓展的后置处理器获得 ObjectFactory(三级缓存对象)
+			// 如果一级缓存中不存在该 bean，则删除二级缓存中对象，将 ObjectFactory 添加到三级缓存中 (解决循环依赖)
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
@@ -953,8 +955,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	protected Object getEarlyBeanReference(String beanName, RootBeanDefinition mbd, Object bean) {
 		Object exposedObject = bean;
+		// 判断容器中是否有 InstantiationAwareBeanPostProcessors 类型的后置处理器
 		if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 			for (SmartInstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().smartInstantiationAware) {
+				// 遍历调用实现了 SmartInstantiationAwareBeanPostProcessor 接口的后置处理器的 getEarlyBeanReference 方法
 				exposedObject = bp.getEarlyBeanReference(exposedObject, beanName);
 			}
 		}
