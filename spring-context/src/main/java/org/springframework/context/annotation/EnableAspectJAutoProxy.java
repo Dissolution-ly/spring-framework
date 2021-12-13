@@ -119,6 +119,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+// AspectJAutoProxyRegistrar 实现了 importBeanDefinitionRegistrar,会通过 registerBeanDefinitions 方法为容器导入 beanDefinition
 @Import(AspectJAutoProxyRegistrar.class)
 public @interface EnableAspectJAutoProxy {
 
